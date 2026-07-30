@@ -1,0 +1,5 @@
+name = "yingshi-api"
+main = "index.js"
+compatibility_date = "2026-07-30"
+account_id = "4d81cc8570649ee7794c27cf4bc77a15"
+workers_dev = true

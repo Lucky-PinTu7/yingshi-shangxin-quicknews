@@ -26,22 +26,37 @@ function posterUrl(prompt) {
   return 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=' + encodeURIComponent(prompt) + '&image_size=landscape_16_9';
 }
 
-/* ---------- 从 JSON 加载全部数据 ---------- */
+/* ---------- 从 API 加载数据（失败时回退到本地 JSON） ---------- */
 var CATEGORIES, TYPE_TO_KEY, TODAY, CAROUSEL_DATA, TIMELINE_DATA;
+var API_URL = 'https://yingshi-api.18396192923.workers.dev/api/data';
 
-fetch('js/data.json')
+function applyData(raw) {
+  CATEGORIES = raw.categories;
+  TYPE_TO_KEY = raw.typeToKey;
+  TODAY = raw.today;
+  CAROUSEL_DATA = raw.carousel;
+  TIMELINE_DATA = raw.timeline;
+  if (typeof window.appInit === 'function') window.appInit();
+}
+
+fetch(API_URL)
   .then(function (res) { return res.json(); })
   .then(function (raw) {
-    CATEGORIES = raw.categories;
-    TYPE_TO_KEY = raw.typeToKey;
-    TODAY = raw.today;
-    CAROUSEL_DATA = raw.carousel.map(function (item) {
-      item.poster = posterUrl(item.posterPrompt);
-      return item;
-    });
-    TIMELINE_DATA = raw.timeline;
-    if (typeof window.appInit === 'function') window.appInit();
+    console.log('数据从 API 加载成功');
+    applyData(raw);
   })
   .catch(function (err) {
-    console.error('数据加载失败:', err);
+    console.warn('API 加载失败，回退到本地 JSON:', err);
+    fetch('js/data.json')
+      .then(function (res) { return res.json(); })
+      .then(function (raw) {
+        raw.carousel = raw.carousel.map(function (item) {
+          item.poster = posterUrl(item.posterPrompt);
+          return item;
+        });
+        applyData(raw);
+      })
+      .catch(function (err2) {
+        console.error('本地 JSON 也加载失败:', err2);
+      });
   });
