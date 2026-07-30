@@ -1,6 +1,7 @@
 /* ============================================================
    影视上新快讯 - 逻辑层
-   依赖：data.js（CATEGORIES, SCENES, CAROUSEL_DATA, TIMELINE_DATA 等）
+   依赖：data.js（SCENES, CATEGORIES, CAROUSEL_DATA, TIMELINE_DATA 等）
+   数据由 data.js 通过 fetch 加载 JSON 后调用 window.appInit()
    ============================================================ */
 (function () {
   'use strict';
@@ -181,6 +182,6 @@
     requestAnimationFrame(function () { setTimeout(scrollToToday, 120); });
   }
 
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); }
-  else { init(); }
+  /* 暴露 init 给 data.js 在 JSON 加载完成后调用 */
+  window.appInit = init;
 })();
