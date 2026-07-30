@@ -28,7 +28,7 @@ function posterUrl(prompt) {
 
 /* ---------- 从 API 加载数据（失败时回退到本地 JSON） ---------- */
 var CATEGORIES, TYPE_TO_KEY, TODAY, CAROUSEL_DATA, TIMELINE_DATA;
-var API_URL = 'https://yingshi-api.18396192923.workers.dev/api/data';
+var API_URL = '/api/data';
 
 function applyData(raw) {
   CATEGORIES = raw.categories;
