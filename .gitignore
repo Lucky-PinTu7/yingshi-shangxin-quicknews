@@ -27,3 +27,11 @@ node_modules/
 # ===== 构建产物输出目录 =====
 dist/
 build/
+
+# ===== GitHub CLI 本地配置（含登录凭证，切勿提交）=====
+.gh-config/
+
+# ===== Cloudflare Wrangler 本地配置（含登录凭证，切勿提交）=====
+.wrangler/
+.cf-config/
+.cf-cache/
