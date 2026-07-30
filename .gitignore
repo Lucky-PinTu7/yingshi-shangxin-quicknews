@@ -35,3 +35,6 @@ build/
 .wrangler/
 .cf-config/
 .cf-cache/
+
+# ===== 本地部署辅助文件（仅 wrangler 定位项目根用）=====
+package.json
