@@ -1,7 +1,7 @@
 /* ============================================================
    影视上新快讯 - 数据层
    剪影场景（SVG 生成）+ JSON 数据加载
-   模拟数据（电影/综艺/纪录片）+ 真实 TVmaze 数据（电视剧/动漫）
+   模拟数据（纪录片）+ 真实豆瓣数据（电影/电视剧/综艺/动漫）
    ============================================================ */
 
 /* ---------- 原创剪影路径（无真实明星与影视 IP 角色） ---------- */
@@ -26,15 +26,15 @@ function posterUrl(prompt) {
   return 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=' + encodeURIComponent(prompt) + '&image_size=landscape_16_9';
 }
 
-/* ---------- 合并模拟数据与真实 TVmaze 数据 ---------- */
-var MOCK_KEEP_TYPES = ['电影', '综艺', '纪录片']; // TVmaze 不覆盖的品类保留模拟数据
+/* ---------- 合并模拟数据与真实豆瓣数据 ---------- */
+var MOCK_KEEP_TYPES = ['纪录片']; // 豆瓣不覆盖的品类保留模拟数据
 
-function mergeTimeline(mockTimeline, tvmazeTimeline) {
-  if (!tvmazeTimeline || !tvmazeTimeline.length) return mockTimeline;
-  var tvmazeMap = {};
-  tvmazeTimeline.forEach(function (day) { tvmazeMap[day.date] = day.items; });
+function mergeTimeline(mockTimeline, realTimeline) {
+  if (!realTimeline || !realTimeline.length) return mockTimeline;
+  var realMap = {};
+  realTimeline.forEach(function (day) { realMap[day.date] = day.items; });
   return mockTimeline.map(function (day) {
-    var realItems = tvmazeMap[day.date] || [];
+    var realItems = realMap[day.date] || [];
     var keptMock = day.items.filter(function (item) {
       return MOCK_KEEP_TYPES.indexOf(item.type) >= 0;
     });
@@ -44,9 +44,9 @@ function mergeTimeline(mockTimeline, tvmazeTimeline) {
   });
 }
 
-/* ---------- 加载数据：模拟 API + 真实 TVmaze API ---------- */
+/* ---------- 加载数据：模拟 API + 真实豆瓣 API ---------- */
 var API_URL = '/api/data';
-var TVMAZE_URL = '/api/tvmaze';
+var DOUBAN_URL = '/api/douban';
 
 function applyData(raw) {
   CATEGORIES = raw.categories;
@@ -72,19 +72,25 @@ function loadLocalFallback() {
     });
 }
 
-// 并行请求模拟数据和真实 TVmaze 数据
+// 并行请求模拟数据和真实豆瓣数据
 Promise.all([
   fetch(API_URL).then(function (r) { return r.json(); }),
-  fetch(TVMAZE_URL).then(function (r) { return r.json(); }).catch(function () { return null; })
+  fetch(DOUBAN_URL).then(function (r) { return r.json(); }).catch(function () { return null; })
 ])
   .then(function (results) {
     var mockData = results[0];
-    var tvmazeData = results[1];
-    if (tvmazeData && tvmazeData.timeline) {
-      console.log('TVmaze 真实数据加载成功，合并中...');
-      mockData.timeline = mergeTimeline(mockData.timeline, tvmazeData.timeline);
+    var doubanData = results[1];
+    if (doubanData) {
+      if (doubanData.carousel && doubanData.carousel.length) {
+        console.log('豆瓣轮播图数据加载成功');
+        mockData.carousel = doubanData.carousel;
+      }
+      if (doubanData.timeline && doubanData.timeline.length) {
+        console.log('豆瓣时间轴数据加载成功，合并中...');
+        mockData.timeline = mergeTimeline(mockData.timeline, doubanData.timeline);
+      }
     } else {
-      console.log('TVmaze 数据未加载，仅使用模拟数据');
+      console.log('豆瓣数据未加载，仅使用模拟数据');
     }
     applyData(mockData);
   })
