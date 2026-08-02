@@ -58,12 +58,12 @@ export async function onRequestGet() {
   try {
     // 并行获取各品类数据
     var endpoints = {
-      movieUpcoming: 'https://movie.douban.com/j/search_subjects?type=movie&tag=即将上映&page_limit=8&page_start=0',
-      movieHot: 'https://movie.douban.com/j/search_subjects?type=movie&tag=热门&page_limit=8&page_start=0',
-      tvHot: 'https://movie.douban.com/j/search_subjects?type=tv&tag=热门&page_limit=8&page_start=0',
-      tvLatest: 'https://movie.douban.com/j/search_subjects?type=tv&tag=最新&page_limit=8&page_start=0',
-      variety: 'https://movie.douban.com/j/search_subjects?type=tv&tag=综艺&page_limit=8&page_start=0',
-      anime: 'https://movie.douban.com/j/search_subjects?type=tv&tag=动漫&page_limit=8&page_start=0'
+      movieUpcoming: 'https://movie.douban.com/j/search_subjects?type=movie&tag=即将上映&page_limit=15&page_start=0',
+      movieHot: 'https://movie.douban.com/j/search_subjects?type=movie&tag=热门&page_limit=15&page_start=0',
+      tvHot: 'https://movie.douban.com/j/search_subjects?type=tv&tag=热门&page_limit=15&page_start=0',
+      tvLatest: 'https://movie.douban.com/j/search_subjects?type=tv&tag=最新&page_limit=15&page_start=0',
+      variety: 'https://movie.douban.com/j/search_subjects?type=tv&tag=综艺&page_limit=15&page_start=0',
+      anime: 'https://movie.douban.com/j/search_subjects?type=tv&tag=动漫&page_limit=15&page_start=0'
     };
 
     var keys = Object.keys(endpoints);
@@ -131,10 +131,11 @@ export async function onRequestGet() {
       };
     });
 
-    // 分配时间轴：is_new 放今天，其余均匀分散
+    // 分配时间轴：is_new 放今天，其余均匀分散到每天
     var newItems = timelineRaw.filter(function (s) { return s.is_new; });
     var otherItems = timelineRaw.filter(function (s) { return !s.is_new; });
     var times = ['09:00', '12:00', '15:00', '18:00', '21:00'];
+    var perDay = Math.max(3, Math.ceil(otherItems.length / DATES.length));
 
     var timeline = DATES.map(function (date, dayIdx) {
       var dayItems = [];
@@ -151,9 +152,9 @@ export async function onRequestGet() {
           });
         });
       }
-      // 每天补充 2-3 个其他项目
-      var startIdx = dayIdx * 3;
-      for (var j = 0; j < 3 && startIdx + j < otherItems.length; j++) {
+      // 均匀分配其他项目到每天
+      var startIdx = dayIdx * perDay;
+      for (var j = 0; j < perDay && startIdx + j < otherItems.length; j++) {
         var item = otherItems[startIdx + j];
         var detail = detailMap[item.id];
         dayItems.push({
