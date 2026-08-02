@@ -1,7 +1,7 @@
 /* ============================================================
    影视上新快讯 - 数据层
    剪影场景（SVG 生成）+ JSON 数据加载
-   全部为虚构内容，不接入真实 API
+   模拟数据（电影/综艺/纪录片）+ 真实 TVmaze 数据（电视剧/动漫）
    ============================================================ */
 
 /* ---------- 原创剪影路径（无真实明星与影视 IP 角色） ---------- */
@@ -26,9 +26,27 @@ function posterUrl(prompt) {
   return 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=' + encodeURIComponent(prompt) + '&image_size=landscape_16_9';
 }
 
-/* ---------- 从 API 加载数据（失败时回退到本地 JSON） ---------- */
-var CATEGORIES, TYPE_TO_KEY, TODAY, CAROUSEL_DATA, TIMELINE_DATA;
+/* ---------- 合并模拟数据与真实 TVmaze 数据 ---------- */
+var MOCK_KEEP_TYPES = ['电影', '综艺', '纪录片']; // TVmaze 不覆盖的品类保留模拟数据
+
+function mergeTimeline(mockTimeline, tvmazeTimeline) {
+  if (!tvmazeTimeline || !tvmazeTimeline.length) return mockTimeline;
+  var tvmazeMap = {};
+  tvmazeTimeline.forEach(function (day) { tvmazeMap[day.date] = day.items; });
+  return mockTimeline.map(function (day) {
+    var realItems = tvmazeMap[day.date] || [];
+    var keptMock = day.items.filter(function (item) {
+      return MOCK_KEEP_TYPES.indexOf(item.type) >= 0;
+    });
+    var merged = keptMock.concat(realItems);
+    merged.sort(function (a, b) { return (a.time || '').localeCompare(b.time || ''); });
+    return Object.assign({}, day, { items: merged });
+  });
+}
+
+/* ---------- 加载数据：模拟 API + 真实 TVmaze API ---------- */
 var API_URL = '/api/data';
+var TVMAZE_URL = '/api/tvmaze';
 
 function applyData(raw) {
   CATEGORIES = raw.categories;
@@ -39,24 +57,38 @@ function applyData(raw) {
   if (typeof window.appInit === 'function') window.appInit();
 }
 
-fetch(API_URL)
-  .then(function (res) { return res.json(); })
-  .then(function (raw) {
-    console.log('数据从 API 加载成功');
-    applyData(raw);
+function loadLocalFallback() {
+  fetch('js/data.json')
+    .then(function (res) { return res.json(); })
+    .then(function (raw) {
+      raw.carousel = raw.carousel.map(function (item) {
+        item.poster = posterUrl(item.posterPrompt);
+        return item;
+      });
+      applyData(raw);
+    })
+    .catch(function (err2) {
+      console.error('本地 JSON 也加载失败:', err2);
+    });
+}
+
+// 并行请求模拟数据和真实 TVmaze 数据
+Promise.all([
+  fetch(API_URL).then(function (r) { return r.json(); }),
+  fetch(TVMAZE_URL).then(function (r) { return r.json(); }).catch(function () { return null; })
+])
+  .then(function (results) {
+    var mockData = results[0];
+    var tvmazeData = results[1];
+    if (tvmazeData && tvmazeData.timeline) {
+      console.log('TVmaze 真实数据加载成功，合并中...');
+      mockData.timeline = mergeTimeline(mockData.timeline, tvmazeData.timeline);
+    } else {
+      console.log('TVmaze 数据未加载，仅使用模拟数据');
+    }
+    applyData(mockData);
   })
   .catch(function (err) {
     console.warn('API 加载失败，回退到本地 JSON:', err);
-    fetch('js/data.json')
-      .then(function (res) { return res.json(); })
-      .then(function (raw) {
-        raw.carousel = raw.carousel.map(function (item) {
-          item.poster = posterUrl(item.posterPrompt);
-          return item;
-        });
-        applyData(raw);
-      })
-      .catch(function (err2) {
-        console.error('本地 JSON 也加载失败:', err2);
-      });
+    loadLocalFallback();
   });
