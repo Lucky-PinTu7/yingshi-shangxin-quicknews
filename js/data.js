@@ -1,7 +1,7 @@
 /* ============================================================
    影视上新快讯 - 数据层
    剪影场景（SVG 生成）+ JSON 数据加载
-   模拟数据（纪录片）+ 真实豆瓣数据（电影/电视剧/综艺/动漫）
+   模拟数据（含动态日期），不接入外部 API
    ============================================================ */
 
 /* ---------- 原创剪影路径（无真实明星与影视 IP 角色） ---------- */
@@ -72,27 +72,11 @@ function loadLocalFallback() {
     });
 }
 
-// 并行请求模拟数据和真实豆瓣数据（带时间戳确保日期正确）
+// 请求模拟数据 API（带时间戳确保日期正确）
 var _t = Date.now();
-Promise.all([
-  fetch(API_URL + '?t=' + _t).then(function (r) { return r.json(); }),
-  fetch(DOUBAN_URL + '?t=' + _t).then(function (r) { return r.json(); }).catch(function () { return null; })
-])
-  .then(function (results) {
-    var mockData = results[0];
-    var doubanData = results[1];
-    if (doubanData) {
-      if (doubanData.carousel && doubanData.carousel.length) {
-        console.log('豆瓣轮播图数据加载成功');
-        mockData.carousel = doubanData.carousel;
-      }
-      if (doubanData.timeline && doubanData.timeline.length) {
-        console.log('豆瓣时间轴数据加载成功，合并中...');
-        mockData.timeline = mergeTimeline(mockData.timeline, doubanData.timeline);
-      }
-    } else {
-      console.log('豆瓣数据未加载，仅使用模拟数据');
-    }
+fetch(API_URL + '?t=' + _t)
+  .then(function (r) { return r.json(); })
+  .then(function (mockData) {
     applyData(mockData);
   })
   .catch(function (err) {
