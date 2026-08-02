@@ -5,9 +5,18 @@
    覆盖品类：电影、电视剧、综艺、动漫（全中文）
    ============================================================ */
 
-var DATES = ['2026-07-24', '2026-07-25', '2026-07-26', '2026-07-27', '2026-07-28', '2026-07-29', '2026-07-30'];
 var WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-var TODAY = '2026-07-27';
+
+// 动态计算日期：今天前后各 3 天
+function dateStr(d) { return d.toISOString().split('T')[0]; }
+var _now = new Date();
+var TODAY = dateStr(_now);
+var DATES = [];
+for (var i = -3; i <= 3; i++) {
+  var d = new Date(_now);
+  d.setDate(d.getDate() + i);
+  DATES.push(dateStr(d));
+}
 
 // 带浏览器 UA 请求豆瓣
 function fetchDouban(url) {

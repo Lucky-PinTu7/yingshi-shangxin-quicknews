@@ -80,6 +80,38 @@ DATA.carousel = DATA.carousel.map(function (item) {
   return item;
 });
 
+// 动态更新日期：以当前日期为今天，偏移模拟数据中的日期
+(function () {
+  var origToday = new Date('2026-07-27T00:00:00Z');
+  var now = new Date();
+  var offsetDays = Math.round((now - origToday) / 86400000);
+  function shiftDate(dateStr) {
+    var d = new Date(dateStr + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + offsetDays);
+    return d.toISOString().split('T')[0];
+  }
+  function shiftLabel(label) {
+    var m = label.match(/(\d+)月(\d+)日/);
+    if (!m) return label;
+    var d = new Date(2026, 6, parseInt(m[2])); // July = month 6
+    d.setDate(d.getDate() + offsetDays);
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+  var wk = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  DATA.today = shiftDate('2026-07-27');
+  DATA.timeline = DATA.timeline.map(function (day) {
+    var newDate = shiftDate(day.date);
+    var d = new Date(newDate + 'T00:00:00Z');
+    return {
+      date: newDate,
+      label: shiftLabel(day.label),
+      weekday: wk[d.getUTCDay()],
+      isToday: newDate === DATA.today,
+      items: day.items
+    };
+  });
+})();
+
 export async function onRequestGet() {
   return new Response(JSON.stringify(DATA, null, 2), {
     headers: {
