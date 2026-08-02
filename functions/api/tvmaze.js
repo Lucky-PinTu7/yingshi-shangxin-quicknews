@@ -5,6 +5,54 @@
    覆盖品类：电视剧、动漫（TVmaze 主要是电视节目）
    ============================================================ */
 
+// TVmaze 英文名 -> 中文名映射
+var NAME_MAP = {
+  'Against the Sky Supreme': '逆天至尊',
+  'Being An Undercover Agent': '卧底',
+  'Blossoms of Power': '繁花',
+  'Cang Yuan Tu': '苍渊图',
+  'Chun Qiang': '唇枪',
+  'Da Tang Shao Nian Tian Xing Zhuan': '大唐少年天行传',
+  'Deadly Sins': '七宗罪',
+  'Erlong Lake: Blossoms of Hometown Dreams': '二龙湖之故乡的梦',
+  'Fanren Xiu Xian Chuan Zhi Fanren Feng Qi Tian Nan': '凡人修仙传',
+  'Great Escape': '密室大逃脱',
+  'Legend of Xianwu': '仙武传',
+  'Lian Qi Shi Wan Nian': '炼气十万年',
+  'Mrs. Revenge': '复仇夫人',
+  'Mushen Ji': '牧神记',
+  'Mystic Nine': '老九门',
+  'No Way! My Bro Is the Emperor': '我哥是皇帝',
+  'Overdo': '过头',
+  'Portland Street Operation': '旺角行动',
+  'Royal Betrothal': '赐婚',
+  'Shixiong A Shixiong': '师兄啊师兄',
+  'Shrouding the Heavens': '遮天',
+  'Snapping Golden Bough': '折金枝',
+  'Soul Land 2: The Unrivaled Tang Sect': '斗罗大陆2绝世唐门',
+  'Spring Over Phoenix Pond': '春满凤池',
+  'Swallowed Star': '吞噬星空',
+  'Tales of Demons and Gods': '妖神记',
+  'The Shadow Sovereign': '暗影君王',
+  'Tomb of Fallen Gods': '坟神',
+  'Under The Brilliance': '光芒之下',
+  'Unsettled Case': '悬案',
+  'Unsung Hero': '无名英雄',
+  'Wan Jie Du Zun': '万界独尊',
+  'Wang Chuan Hua Wei Yang': '忘川花未央',
+  'Wanmei Shijie': '完美世界',
+  'Wind-Born Warriors': '御风者',
+  'Wu Shen Zhu Zai': '武神主宰',
+  'Xian Ni': '仙逆',
+  'Yi Nian Yong Heng': '一念永恒',
+  'Yiran\'s Silver Linings': '亦然的晴天',
+  'Zhang Jian - The Legendary Entrepreneur': '张骞传奇'
+};
+
+function cnName(enName) {
+  return NAME_MAP[enName] || enName;
+}
+
 // 日期范围（与时间轴一致）
 var DATES = ['2026-07-24', '2026-07-25', '2026-07-26', '2026-07-27', '2026-07-28', '2026-07-29', '2026-07-30'];
 var WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -81,25 +129,25 @@ export async function onRequestGet() {
         var eps = entry.episodes;
         var type = mapType(show.type, show.genres);
 
+        var showName = cnName(show.name);
+
         // 判断是否首播
         var isFirst = eps.some(function (ep) { return ep.season === 1 && ep.number === 1; });
         // 取最早播出时间
         var airtime = eps[0].airtime || '';
-        // 集数信息
-        var epInfo = eps.map(function (ep) { return 'S' + ep.season + 'E' + ep.number; }).join('、');
 
         var title;
         if (isFirst) {
-          title = show.name + ' 首播';
+          title = '《' + showName + '》首播';
         } else if (eps.length > 1) {
-          title = show.name + ' 更新' + eps.length + '集';
+          title = '《' + showName + '》更新' + eps.length + '集';
         } else {
-          title = show.name + ' 第' + eps[0].number + '集更新';
+          title = '《' + showName + '》第' + eps[0].number + '集更新';
         }
 
         var summary = stripHtml(show.summary);
         if (!summary) {
-          summary = show.name + ' ' + channelName(show.webChannel) + (show.genres && show.genres.length ? ' ' + show.genres.join('/') : '');
+          summary = '《' + showName + '》' + channelName(show.webChannel) + (show.genres && show.genres.length ? ' ' + show.genres.join('/') : '');
         }
 
         return {
