@@ -82,10 +82,15 @@ DATA.carousel = DATA.carousel.map(function (item) {
 
 // 动态更新日期：以当前日期为今天，重新生成 7 天日期范围
 function getNow(request) {
+  var t = new URL(request.url).searchParams.get('t');
+  if (t) {
+    var d = new Date(parseInt(t));
+    if (!isNaN(d.getTime())) return d;
+  }
   var dateHeader = request.headers.get('date');
   if (dateHeader) {
-    var d = new Date(dateHeader);
-    if (!isNaN(d.getTime())) return d;
+    var d2 = new Date(dateHeader);
+    if (!isNaN(d2.getTime())) return d2;
   }
   return new Date();
 }

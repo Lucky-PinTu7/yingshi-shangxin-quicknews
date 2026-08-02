@@ -56,10 +56,14 @@ function buildSummary(detail, item) {
 
 export async function onRequestGet(context) {
   try {
-    // 从请求头获取真实时间
-    var dateHeader = context.request.headers.get('date');
-    var now = dateHeader ? new Date(dateHeader) : new Date();
-    if (isNaN(now.getTime())) now = new Date();
+    // 从前端传入的时间戳获取真实时间
+    var tParam = new URL(context.request.url).searchParams.get('t');
+    var now = tParam ? new Date(parseInt(tParam)) : null;
+    if (!now || isNaN(now.getTime())) {
+      var dateHeader = context.request.headers.get('date');
+      now = dateHeader ? new Date(dateHeader) : new Date();
+      if (isNaN(now.getTime())) now = new Date();
+    }
     TODAY = dateStr(now);
     DATES = [];
     for (var di = -3; di <= 3; di++) {

@@ -72,10 +72,11 @@ function loadLocalFallback() {
     });
 }
 
-// 并行请求模拟数据和真实豆瓣数据
+// 并行请求模拟数据和真实豆瓣数据（带时间戳确保日期正确）
+var _t = Date.now();
 Promise.all([
-  fetch(API_URL).then(function (r) { return r.json(); }),
-  fetch(DOUBAN_URL).then(function (r) { return r.json(); }).catch(function () { return null; })
+  fetch(API_URL + '?t=' + _t).then(function (r) { return r.json(); }),
+  fetch(DOUBAN_URL + '?t=' + _t).then(function (r) { return r.json(); }).catch(function () { return null; })
 ])
   .then(function (results) {
     var mockData = results[0];
