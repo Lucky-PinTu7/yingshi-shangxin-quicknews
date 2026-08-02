@@ -80,33 +80,31 @@ DATA.carousel = DATA.carousel.map(function (item) {
   return item;
 });
 
-// 动态更新日期：以当前日期为今天，偏移模拟数据中的日期
+// 动态更新日期：以当前日期为今天，重新生成 7 天日期范围
 (function () {
-  var origToday = new Date('2026-07-27T00:00:00Z');
-  var now = new Date();
-  var offsetDays = Math.round((now - origToday) / 86400000);
-  function shiftDate(dateStr) {
-    var d = new Date(dateStr + 'T00:00:00Z');
-    d.setUTCDate(d.getUTCDate() + offsetDays);
-    return d.toISOString().split('T')[0];
-  }
-  function shiftLabel(label) {
-    var m = label.match(/(\d+)月(\d+)日/);
-    if (!m) return label;
-    var d = new Date(2026, 6, parseInt(m[2])); // July = month 6
-    d.setDate(d.getDate() + offsetDays);
-    return (d.getMonth() + 1) + '月' + d.getDate() + '日';
-  }
+  function dateStr(d) { return d.toISOString().split('T')[0]; }
   var wk = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  DATA.today = shiftDate('2026-07-27');
-  DATA.timeline = DATA.timeline.map(function (day) {
-    var newDate = shiftDate(day.date);
-    var d = new Date(newDate + 'T00:00:00Z');
-    return {
-      date: newDate,
-      label: shiftLabel(day.label),
+  var now = new Date();
+  var todayStr = dateStr(now);
+  var newDates = [];
+  for (var i = -3; i <= 3; i++) {
+    var d = new Date(now);
+    d.setUTCDate(d.getUTCDate() + i);
+    newDates.push({
+      date: dateStr(d),
+      label: (d.getUTCMonth() + 1) + '月' + d.getUTCDate() + '日',
       weekday: wk[d.getUTCDay()],
-      isToday: newDate === DATA.today,
+      isToday: i === 0
+    });
+  }
+  DATA.today = todayStr;
+  DATA.timeline = DATA.timeline.map(function (day, idx) {
+    var nd = newDates[idx] || newDates[0];
+    return {
+      date: nd.date,
+      label: nd.label,
+      weekday: nd.weekday,
+      isToday: nd.isToday,
       items: day.items
     };
   });
