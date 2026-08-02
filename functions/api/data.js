@@ -81,7 +81,7 @@ DATA.carousel = DATA.carousel.map(function (item) {
 });
 
 export async function onRequestGet() {
-  return new Response(JSON.stringify(DATA), {
+  return new Response(JSON.stringify(DATA, null, 2), {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Access-Control-Allow-Origin': '*',
