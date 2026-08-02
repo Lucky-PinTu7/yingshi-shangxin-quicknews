@@ -81,10 +81,19 @@ DATA.carousel = DATA.carousel.map(function (item) {
 });
 
 // 动态更新日期：以当前日期为今天，重新生成 7 天日期范围
-(function () {
+function getNow(request) {
+  var dateHeader = request.headers.get('date');
+  if (dateHeader) {
+    var d = new Date(dateHeader);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return new Date();
+}
+export async function onRequestGet(context) {
+  var request = context.request;
   function dateStr(d) { return d.toISOString().split('T')[0]; }
   var wk = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  var now = new Date();
+  var now = getNow(request);
   var todayStr = dateStr(now);
   var newDates = [];
   for (var i = -3; i <= 3; i++) {
@@ -108,9 +117,6 @@ DATA.carousel = DATA.carousel.map(function (item) {
       items: day.items
     };
   });
-})();
-
-export async function onRequestGet() {
   return new Response(JSON.stringify(DATA, null, 2), {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',

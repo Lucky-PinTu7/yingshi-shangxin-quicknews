@@ -7,14 +7,14 @@
 
 var WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
-// 动态计算日期：今天前后各 3 天
+// 动态计算日期（从请求头获取真实时间）
 function dateStr(d) { return d.toISOString().split('T')[0]; }
 var _now = new Date();
 var TODAY = dateStr(_now);
 var DATES = [];
 for (var i = -3; i <= 3; i++) {
   var d = new Date(_now);
-  d.setDate(d.getDate() + i);
+  d.setUTCDate(d.getUTCDate() + i);
   DATES.push(dateStr(d));
 }
 
@@ -54,8 +54,20 @@ function buildSummary(detail, item) {
   return parts.join(' / ') || '暂无简介';
 }
 
-export async function onRequestGet() {
+export async function onRequestGet(context) {
   try {
+    // 从请求头获取真实时间
+    var dateHeader = context.request.headers.get('date');
+    var now = dateHeader ? new Date(dateHeader) : new Date();
+    if (isNaN(now.getTime())) now = new Date();
+    TODAY = dateStr(now);
+    DATES = [];
+    for (var di = -3; di <= 3; di++) {
+      var dd = new Date(now);
+      dd.setUTCDate(dd.getUTCDate() + di);
+      DATES.push(dateStr(dd));
+    }
+
     // 并行获取各品类数据
     var endpoints = {
       movieUpcoming: 'https://movie.douban.com/j/search_subjects?type=movie&tag=即将上映&page_limit=15&page_start=0',
