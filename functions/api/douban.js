@@ -118,7 +118,7 @@ export async function onRequestGet() {
         typeKey: item._catKey || 'movie',
         date: item._tag || '即将上映',
         desc: buildSummary(detail, item),
-        poster: item.cover
+        poster: item.cover ? 'https://images.weserv.nl/?url=' + item.cover.replace(/^https?:\/\//, '') : ''
       };
     });
 
