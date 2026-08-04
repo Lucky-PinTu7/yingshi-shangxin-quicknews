@@ -13,6 +13,8 @@
   var favorites = [];
   var itemMap = {};
   var favMode = false;
+  var userToken = null;
+  var userName = null;
 
   function el(id) { return document.getElementById(id); }
   function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -30,16 +32,18 @@
   }
   function toggleFavorite(id) {
     var idx = favorites.findIndex(function (f) { return f.id === id; });
+    var authHeaders = { 'Content-Type': 'application/json' };
+    if (userToken) authHeaders['Authorization'] = 'Bearer ' + userToken;
     if (idx >= 0) {
       favorites.splice(idx, 1);
       // 同步删除数据库记录
-      fetch('/api/favorites?fav_id=' + encodeURIComponent(id), { method: 'DELETE' }).catch(function(){});
+      fetch('/api/favorites?fav_id=' + encodeURIComponent(id), { method: 'DELETE', headers: authHeaders }).catch(function(){});
     } else if (itemMap[id]) {
       favorites.push(itemMap[id]);
       // 同步写入数据库
       fetch('/api/favorites', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
           fav_id: id,
           title: itemMap[id].title,
@@ -56,6 +60,96 @@
   }
   function updateFavCount() {
     var c = el('favCount'); if (c) c.textContent = favorites.length;
+  }
+
+  /* ---------- 用户认证 ---------- */
+  function loadUser() {
+    try {
+      userToken = localStorage.getItem('ys_token') || null;
+      userName = localStorage.getItem('ys_username') || null;
+    } catch (e) { userToken = null; userName = null; }
+  }
+  function saveUser(token, username) {
+    userToken = token;
+    userName = username;
+    try {
+      localStorage.setItem('ys_token', token);
+      localStorage.setItem('ys_username', username);
+    } catch (e) {}
+  }
+  function logout() {
+    userToken = null;
+    userName = null;
+    try {
+      localStorage.removeItem('ys_token');
+      localStorage.removeItem('ys_username');
+    } catch (e) {}
+    updateUserUI();
+  }
+  function updateUserUI() {
+    var area = el('userArea');
+    if (!area) return;
+    if (userToken && userName) {
+      area.innerHTML = '<div class="user-info"><span class="user-name">' + escapeHtml(userName) + '</span><button class="user-btn logout-btn" id="logoutBtn" type="button">退出</button></div>';
+      var lb = el('logoutBtn');
+      if (lb) lb.addEventListener('click', logout);
+    } else {
+      area.innerHTML = '<button class="user-btn" id="loginBtn" type="button">登录</button><button class="user-btn" id="registerBtn" type="button">注册</button>';
+      var li = el('loginBtn');
+      var rg = el('registerBtn');
+      if (li) li.addEventListener('click', function () { showAuthModal('login'); });
+      if (rg) rg.addEventListener('click', function () { showAuthModal('register'); });
+    }
+  }
+  function showAuthModal(mode) {
+    var modal = el('authModal');
+    var title = el('authModalTitle');
+    var submit = el('authSubmit');
+    var error = el('authError');
+    if (!modal) return;
+    title.textContent = mode === 'register' ? '注册' : '登录';
+    submit.textContent = mode === 'register' ? '注册' : '登录';
+    error.textContent = '';
+    el('authUsername').value = '';
+    el('authPassword').value = '';
+    modal.classList.add('active');
+    modal.dataset.mode = mode;
+  }
+  function hideAuthModal() {
+    var modal = el('authModal');
+    if (modal) modal.classList.remove('active');
+  }
+  function handleAuth(mode) {
+    var username = el('authUsername').value.trim();
+    var password = el('authPassword').value;
+    var error = el('authError');
+    var submit = el('authSubmit');
+    if (!username || !password) {
+      error.textContent = '用户名和密码不能为空';
+      return;
+    }
+    error.textContent = '';
+    submit.disabled = true;
+    submit.textContent = '处理中...';
+    fetch('/api/auth/' + mode, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username, password: password })
+    }).then(function (res) { return res.json(); }).then(function (data) {
+      submit.disabled = false;
+      submit.textContent = mode === 'register' ? '注册' : '登录';
+      if (data.error) {
+        error.textContent = data.error;
+        return;
+      }
+      saveUser(data.token, data.username);
+      updateUserUI();
+      hideAuthModal();
+    }).catch(function (e) {
+      submit.disabled = false;
+      submit.textContent = mode === 'register' ? '注册' : '登录';
+      error.textContent = '网络错误，请稍后重试';
+    });
   }
 
   /* ---------- 主题 ---------- */
@@ -255,6 +349,8 @@
   function init() {
     loadFavorites();
     updateFavCount();
+    loadUser();
+    updateUserUI();
     renderHeaderDate();
     renderScenes();
     renderTabs();
@@ -279,6 +375,28 @@
     /* 收藏夹 Tab */
     var ft = el('favTab');
     if (ft) ft.addEventListener('click', toggleFavMode);
+
+    /* 登录/注册模态框事件 */
+    var authModal = el('authModal');
+    var authModalClose = el('authModalClose');
+    var authSubmit = el('authSubmit');
+    if (authModalClose) authModalClose.addEventListener('click', hideAuthModal);
+    if (authSubmit) authSubmit.addEventListener('click', function () {
+      var mode = authModal.dataset.mode || 'login';
+      handleAuth(mode);
+    });
+    /* 点击遮罩关闭模态框 */
+    if (authModal) authModal.addEventListener('click', function (e) {
+      if (e.target === authModal) hideAuthModal();
+    });
+    /* 回车提交 */
+    var authPassword = el('authPassword');
+    if (authPassword) authPassword.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var mode = authModal.dataset.mode || 'login';
+        handleAuth(mode);
+      }
+    });
   }
 
   /* 暴露 init 给 data.js 在 JSON 加载完成后调用 */

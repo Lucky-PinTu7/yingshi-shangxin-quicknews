@@ -78,7 +78,8 @@ export async function onRequestPost(context) {
     await db.batch([
       db.prepare('CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)'),
       db.prepare('CREATE TABLE IF NOT EXISTS news (id INTEGER PRIMARY KEY AUTOINCREMENT, time TEXT NOT NULL, type TEXT NOT NULL, title TEXT NOT NULL, summary TEXT, source TEXT, sourceUrl TEXT, date TEXT, created_at TEXT DEFAULT (datetime(\'now\')))'),
-      db.prepare('CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY AUTOINCREMENT, fav_id TEXT NOT NULL, title TEXT, type TEXT, time TEXT, summary TEXT, source TEXT, sourceUrl TEXT, created_at TEXT DEFAULT (datetime(\'now\')))'),
+      db.prepare('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, created_at TEXT DEFAULT (datetime(\'now\')))'),
+      db.prepare('CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY AUTOINCREMENT, fav_id TEXT NOT NULL, title TEXT, type TEXT, time TEXT, summary TEXT, source TEXT, sourceUrl TEXT, username TEXT, created_at TEXT DEFAULT (datetime(\'now\')))'),
       db.prepare('INSERT OR IGNORE INTO admins (username, password) VALUES (\'admin\', \'admin123\')')
     ]);
     return json({ success: true, message: '数据库初始化成功，管理员账号: admin / admin123' });
