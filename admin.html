@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理后台 - 影视上新快讯</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-color: #1a2332;
+      --bg-deep: #0c1118;
+      --bg-accent: #7d8da6;
+      --card-bg: rgba(18, 24, 34, 0.55);
+      --card-bg-hover: rgba(26, 34, 48, 0.68);
+      --border: rgba(255, 255, 255, 0.09);
+      --border-hover: rgba(255, 255, 255, 0.2);
+      --text: #e8ecf3;
+      --text-dim: rgba(232, 236, 243, 0.65);
+      --text-faint: rgba(232, 236, 243, 0.4);
+      --accent: #6f93d4;
+      --danger: #e85a5a;
+      --success: #5fa572;
+      --radius: 14px;
+      --ease: cubic-bezier(.4, 0, .2, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      background: var(--bg-deep);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- 背景层 ---------- */
+    .bg-layer { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .bg-gradient {
+      position: absolute; inset: 0;
+      background: radial-gradient(120% 80% at 50% -10%, var(--bg-accent) 0%, transparent 45%),
+                  linear-gradient(180deg, var(--bg-color) 0%, var(--bg-deep) 100%);
+      opacity: 0.92;
+    }
+    .bg-vignette { position: absolute; inset: 0; background: radial-gradient(130% 100% at 50% 30%, transparent 40%, rgba(0,0,0,0.55) 100%); }
+
+    .app-root { position: relative; z-index: 1; min-height: 100vh; }
+
+    /* ---------- 登录页 ---------- */
+    .login-wrap {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .login-card {
+      width: 100%; max-width: 400px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 32px;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      animation: cardIn .5s var(--ease) both;
+    }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    .login-logo {
+      width: 56px; height: 56px; margin: 0 auto 20px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 14px; color: #fff;
+    }
+    .login-logo svg { width: 30px; height: 30px; }
+
+    .login-title { font-size: 22px; font-weight: 700; text-align: center; color: #fff; margin-bottom: 6px; }
+    .login-sub { font-size: 13px; text-align: center; color: var(--text-faint); margin-bottom: 28px; }
+
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 8px; font-weight: 500; }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 14px; color: var(--text);
+      font-family: inherit;
+      transition: border-color .25s var(--ease), background .25s var(--ease);
+      outline: none;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--accent);
+      background: rgba(0,0,0,0.45);
+    }
+    .field input::placeholder, .field textarea::placeholder { color: var(--text-faint); }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field select option { background: var(--bg-color); color: var(--text); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text-dim);
+      padding: 10px 18px; border-radius: 10px;
+      font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit;
+      transition: all .25s var(--ease);
+    }
+    .btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .btn-primary { border-color: transparent; background: var(--accent); color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+    .btn-primary:hover { background: #5a82c0; color: #fff; }
+    .btn-danger { border-color: rgba(232,90,90,0.3); background: rgba(232,90,90,0.15); color: var(--danger); }
+    .btn-danger:hover { background: rgba(232,90,90,0.3); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 12.5px; border-radius: 8px; }
+    .btn-block { width: 100%; }
+
+    .alert {
+      padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px;
+      display: none;
+    }
+    .alert.show { display: block; animation: cardIn .3s var(--ease) both; }
+    .alert-error { background: rgba(232,90,90,0.15); border: 1px solid rgba(232,90,90,0.3); color: #f0a0a0; }
+    .alert-success { background: rgba(95,165,114,0.15); border: 1px solid rgba(95,165,114,0.3); color: #a8d4b4; }
+
+    /* ---------- 控制台布局 ---------- */
+    .dashboard { display: none; }
+    .dashboard.show { display: block; }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 28px;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 10px; }
+    .topbar-brand svg { width: 26px; height: 26px; color: #fff; }
+    .topbar-brand span { font-size: 17px; font-weight: 700; color: #fff; }
+    .topbar-user { display: flex; align-items: center; gap: 14px; }
+    .topbar-username { font-size: 14px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+    .topbar-username .user-badge {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600;
+    }
+
+    .tab-nav {
+      display: flex; gap: 8px;
+      padding: 20px 28px 0;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      border: 1px solid transparent; border-bottom: none;
+      background: transparent;
+      color: var(--text-dim);
+      padding: 11px 20px; border-radius: 10px 10px 0 0;
+      font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit;
+      white-space: nowrap;
+      transition: all .25s var(--ease);
+      position: relative; top: 1px;
+    }
+    .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .tab-btn.active { color: #fff; background: var(--card-bg); border-color: var(--border); backdrop-filter: blur(14px); }
+
+    .tab-content { display: none; padding: 24px 28px 40px; }
+    .tab-content.active { display: block; animation: cardIn .4s var(--ease) both; }
+
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .section-title { font-size: 18px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .section-count { font-size: 13px; color: var(--text-faint); background: rgba(255,255,255,0.08); padding: 3px 10px; border-radius: 999px; }
+
+    /* ---------- 表格 ---------- */
+    .table-wrap {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    thead th {
+      text-align: left; padding: 14px 16px;
+      font-size: 12px; font-weight: 600; color: var(--text-faint);
+      letter-spacing: 0.5px; text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      background: rgba(0,0,0,0.15);
+    }
+    tbody td { padding: 13px 16px; font-size: 13.5px; color: var(--text-dim); border-bottom: 1px solid rgba(255,255,255,0.05); }
+    tbody tr { transition: background .2s var(--ease); }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+    tbody tr:last-child td { border-bottom: none; }
+    td.title-cell { color: #fff; font-weight: 500; max-width: 280px; }
+    td .type-tag {
+      display: inline-block; font-size: 11px; font-weight: 600; color: #fff;
+      padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;
+    }
+    .type-电影 { background: #c79a4a; }
+    .type-电视剧 { background: #d0a866; }
+    .type-综艺 { background: #d86278; }
+    .type-动漫 { background: #6f93d4; }
+    .type-纪录片 { background: #5fa572; }
+
+    .row-actions { display: flex; gap: 8px; white-space: nowrap; }
+
+    .empty-state { padding: 50px 20px; text-align: center; color: var(--text-faint); font-size: 14px; }
+
+    /* ---------- 加载状态 ---------- */
+    .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 50px 20px; color: var(--text-faint); font-size: 14px; }
+    .spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.15); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---------- 模态框 ---------- */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.show { display: flex; animation: cardIn .3s var(--ease) both; }
+    .modal {
+      width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+      background: rgba(20, 28, 40, 0.95);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+      backdrop-filter: blur(20px);
+    }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+    .modal-head h3 { font-size: 17px; font-weight: 600; color: #fff; }
+    .modal-close { width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all .2s var(--ease); }
+    .modal-close:hover { background: rgba(232,90,90,0.2); color: var(--danger); }
+    .modal-body { padding: 24px; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border); }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-grid .full { grid-column: 1 / -1; }
+
+    /* ---------- 数据库初始化 ---------- */
+    .init-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      max-width: 600px;
+    }
+    .init-card h3 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+    .init-card p { font-size: 14px; line-height: 1.7; color: var(--text-dim); margin-bottom: 20px; }
+    .init-result { margin-top: 16px; padding: 14px 16px; border-radius: 10px; font-size: 13.5px; display: none; }
+    .init-result.show { display: block; animation: cardIn .3s var(--ease) both; }
+    .init-result.ok { background: rgba(95,165,114,0.15); border: 1px solid rgba(95,165,114,0.3); color: #a8d4b4; }
+    .init-result.err { background: rgba(232,90,90,0.15); border: 1px solid rgba(232,90,90,0.3); color: #f0a0a0; }
+
+    /* ---------- Toast ---------- */
+    .toast-wrap { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
+    .toast {
+      padding: 12px 18px; border-radius: 10px; font-size: 13.5px;
+      background: rgba(20,28,40,0.95); border: 1px solid var(--border);
+      backdrop-filter: blur(14px); box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      animation: cardIn .3s var(--ease) both; max-width: 340px;
+    }
+    .toast.ok { border-left: 3px solid var(--success); }
+    .toast.err { border-left: 3px solid var(--danger); }
+
+    /* ---------- 响应式 ---------- */
+    @media (max-width: 768px) {
+      .topbar { padding: 12px 16px; }
+      .topbar-brand span { font-size: 15px; }
+      .topbar-username .user-text { display: none; }
+      .tab-nav { padding: 16px 16px 0; }
+      .tab-content { padding: 20px 16px 30px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .modal-body { padding: 20px; }
+      .init-card { padding: 24px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+  </style>
+</head>
+<body data-cat="all">
+
+  <!-- 背景层 -->
+  <div class="bg-layer" aria-hidden="true">
+    <div class="bg-gradient"></div>
+    <div class="bg-vignette"></div>
+  </div>
+
+  <div class="app-root">
+
+    <!-- 登录页 -->
+    <div class="login-wrap" id="loginView">
+      <div class="login-card">
+        <div class="login-logo" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="30" height="30">
+            <rect x="4" y="10" width="40" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="2.5"/>
+            <path d="M4 18h40M16 10v8M32 10v8" stroke="currentColor" stroke-width="2.5"/>
+            <circle cx="24" cy="28" r="5" fill="currentColor"/>
+          </svg>
+        </div>
+        <h1 class="login-title">管理后台</h1>
+        <p class="login-sub">影视上新快讯 · 管理控制台</p>
+
+        <div class="alert alert-error" id="loginAlert"></div>
+
+        <form id="loginForm" autocomplete="off">
+          <div class="field">
+            <label for="loginUser">用户名</label>
+            <input type="text" id="loginUser" placeholder="请输入用户名" required>
+          </div>
+          <div class="field">
+            <label for="loginPass">密码</label>
+            <input type="password" id="loginPass" placeholder="请输入密码" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="loginBtn">登 录</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 控制台 -->
+    <div class="dashboard" id="dashboardView">
+
+      <!-- 顶栏 -->
+      <header class="topbar">
+        <div class="topbar-brand">
+          <svg viewBox="0 0 48 48" width="26" height="26">
+            <rect x="4" y="10" width="40" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="2.5"/>
+            <path d="M4 18h40M16 10v8M32 10v8" stroke="currentColor" stroke-width="2.5"/>
+            <circle cx="24" cy="28" r="5" fill="currentColor"/>
+          </svg>
+          <span>管理后台</span>
+        </div>
+        <div class="topbar-user">
+          <div class="topbar-username">
+            <span class="user-badge" id="userBadge">A</span>
+            <span class="user-text" id="userNameText">admin</span>
+          </div>
+          <button class="btn btn-danger btn-sm" id="logoutBtn">退出登录</button>
+        </div>
+      </header>
+
+      <!-- 标签导航 -->
+      <nav class="tab-nav" id="tabNav">
+        <button class="tab-btn active" data-tab="news">资讯管理</button>
+        <button class="tab-btn" data-tab="favorites">收藏记录</button>
+        <button class="tab-btn" data-tab="init">数据库初始化</button>
+      </nav>
+
+      <!-- 资讯管理 -->
+      <section class="tab-content active" id="tab-news">
+        <div class="section-head">
+          <div class="section-title">
+            资讯管理
+            <span class="section-count" id="newsCount">0</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="addNewsBtn">+ 新增资讯</button>
+        </div>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>类型</th>
+                  <th>标题</th>
+                  <th>来源</th>
+                  <th>日期</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="newsTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 收藏记录 -->
+      <section class="tab-content" id="tab-favorites">
+        <div class="section-head">
+          <div class="section-title">
+            收藏记录
+            <span class="section-count" id="favCount">0</span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>标题</th>
+                  <th>类型</th>
+                  <th>时间</th>
+                  <th>来源</th>
+                  <th>收藏时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="favTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 数据库初始化 -->
+      <section class="tab-content" id="tab-init">
+        <div class="section-head">
+          <div class="section-title">数据库初始化</div>
+        </div>
+        <div class="init-card">
+          <h3>初始化数据库</h3>
+          <p>此操作将创建所需的数据表并写入默认管理员账户与示例数据。如果数据表已存在则跳过创建，不会清空已有数据。请谨慎操作。</p>
+          <button class="btn btn-primary" id="initBtn">初始化数据库</button>
+          <div class="init-result" id="initResult"></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- 资讯编辑模态框 -->
+  <div class="modal-overlay" id="newsModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">新增资讯</h3>
+        <button class="modal-close" id="modalClose" aria-label="关闭">&times;</button>
+      </div>
+      <form id="newsForm" autocomplete="off">
+        <div class="modal-body">
+          <input type="hidden" id="newsId">
+          <div class="form-grid">
+            <div class="field">
+              <label for="fTime">时间</label>
+              <input type="text" id="fTime" placeholder="如 10:00" required>
+            </div>
+            <div class="field">
+              <label for="fType">类型</label>
+              <select id="fType" required>
+                <option value="电影">电影</option>
+                <option value="电视剧">电视剧</option>
+                <option value="综艺">综艺</option>
+                <option value="动漫">动漫</option>
+                <option value="纪录片">纪录片</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label for="fTitle">标题</label>
+              <input type="text" id="fTitle" placeholder="请输入资讯标题" required>
+            </div>
+            <div class="field full">
+              <label for="fSummary">摘要</label>
+              <textarea id="fSummary" placeholder="请输入资讯摘要"></textarea>
+            </div>
+            <div class="field">
+              <label for="fSource">来源</label>
+              <input type="text" id="fSource" placeholder="如 光影快讯">
+            </div>
+            <div class="field">
+              <label for="fSourceUrl">来源链接</label>
+              <input type="url" id="fSourceUrl" placeholder="https://...">
+            </div>
+            <div class="field full">
+              <label for="fDate">日期</label>
+              <input type="date" id="fDate" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" id="modalCancel">取消</button>
+          <button type="submit" class="btn btn-primary" id="modalSave">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 删除确认模态框 -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-head">
+        <h3>确认删除</h3>
+        <button class="modal-close" id="confirmClose" aria-label="关闭">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-dim);font-size:14px;line-height:1.6;" id="confirmText">确定要删除这条记录吗？此操作不可撤销。</p>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" id="confirmCancel">取消</button>
+        <button type="button" class="btn btn-danger" id="confirmOk">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 容器 -->
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* ---------- 工具函数 ---------- */
+      var TOKEN_KEY = 'admin_token';
+
+      function getToken() { return sessionStorage.getItem(TOKEN_KEY); }
+      function setToken(t) { sessionStorage.setItem(TOKEN_KEY, t); }
+      function clearToken() { sessionStorage.removeItem(TOKEN_KEY); }
+
+      function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+
+      function toast(msg, type) {
+        var wrap = document.getElementById('toastWrap');
+        var el = document.createElement('div');
+        el.className = 'toast ' + (type === 'ok' ? 'ok' : 'err');
+        el.textContent = msg;
+        wrap.appendChild(el);
+        setTimeout(function () {
+          el.style.opacity = '0';
+          el.style.transform = 'translateX(20px)';
+          el.style.transition = 'all .3s ease';
+          setTimeout(function () { el.remove(); }, 300);
+        }, 2800);
+      }
+
+      /* ---------- API 请求 ---------- */
+      function api(path, options) {
+        options = options || {};
+        var headers = { 'Content-Type': 'application/json' };
+        var token = getToken();
+        if (token) headers['Authorization'] = token;
+        if (options.headers) Object.assign(headers, options.headers);
+        return fetch(path, {
+          method: options.method || 'GET',
+          headers: headers,
+          body: options.body ? JSON.stringify(options.body) : undefined
+        }).then(function (res) {
+          if (res.status === 401) {
+            clearToken();
+            showLogin();
+            throw new Error('登录已过期，请重新登录');
+          }
+          return res.json().catch(function () { return {}; }).then(function (data) {
+            if (!res.ok) throw new Error(data.error || data.message || ('请求失败 (' + res.status + ')'));
+            return data;
+          });
+        });
+      }
+
+      /* ---------- 视图切换 ---------- */
+      var loginView = document.getElementById('loginView');
+      var dashboardView = document.getElementById('dashboardView');
+
+      function showLogin() {
+        loginView.style.display = 'flex';
+        dashboardView.classList.remove('show');
+      }
+
+      function showDashboard() {
+        loginView.style.display = 'none';
+        dashboardView.classList.add('show');
+        loadNews();
+      }
+
+      /* ---------- 登录 ---------- */
+      var loginForm = document.getElementById('loginForm');
+      var loginAlert = document.getElementById('loginAlert');
+      var loginBtn = document.getElementById('loginBtn');
+
+      function showLoginAlert(msg) {
+        loginAlert.textContent = msg;
+        loginAlert.classList.add('show');
+      }
+
+      loginForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        loginAlert.classList.remove('show');
+        var username = document.getElementById('loginUser').value.trim();
+        var password = document.getElementById('loginPass').value.trim();
+        if (!username || !password) { showLoginAlert('请输入用户名和密码'); return; }
+
+        loginBtn.disabled = true;
+        loginBtn.textContent = '登录中...';
+
+        api('/api/admin/login', { method: 'POST', body: { username: username, password: password } })
+          .then(function (data) {
+            if (data.token) {
+              setToken(data.token);
+              document.getElementById('userNameText').textContent = username;
+              document.getElementById('userBadge').textContent = username.charAt(0).toUpperCase();
+              loginForm.reset();
+              showDashboard();
+              toast('登录成功', 'ok');
+            } else {
+              showLoginAlert(data.error || '登录失败，请检查凭证');
+            }
+          })
+          .catch(function (err) {
+            showLoginAlert(err.message || '登录失败，请稍后重试');
+          })
+          .finally(function () {
+            loginBtn.disabled = false;
+            loginBtn.textContent = '登 录';
+          });
+      });
+
+      /* ---------- 退出登录 ---------- */
+      document.getElementById('logoutBtn').addEventListener('click', function () {
+        clearToken();
+        showLogin();
+        toast('已退出登录', 'ok');
+      });
+
+      /* ---------- 标签切换 ---------- */
+      var tabBtns = document.querySelectorAll('.tab-btn');
+      var tabContents = document.querySelectorAll('.tab-content');
+      tabBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var tab = btn.dataset.tab;
+          tabBtns.forEach(function (b) { b.classList.remove('active'); });
+          tabContents.forEach(function (c) { c.classList.remove('active'); });
+          btn.classList.add('active');
+          document.getElementById('tab-' + tab).classList.add('active');
+          if (tab === 'news') loadNews();
+          else if (tab === 'favorites') loadFavorites();
+        });
+      });
+
+      /* ---------- 资讯管理 ---------- */
+      var newsData = [];
+
+      function loadNews() {
+        var tbody = document.getElementById('newsTbody');
+        tbody.innerHTML = '<tr><td colspan="6"><div class="loading"><span class="spinner"></span>加载中...</div></td></tr>';
+        api('/api/admin/news').then(function (data) {
+          newsData = data.news || [];
+          renderNews();
+        }).catch(function (err) {
+          tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">' + escapeHtml(err.message) + '</div></td></tr>';
+        });
+      }
+
+      function renderNews() {
+        var tbody = document.getElementById('newsTbody');
+        document.getElementById('newsCount').textContent = newsData.length;
+        if (newsData.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">暂无资讯数据，点击「新增资讯」添加</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = newsData.map(function (item) {
+          return '<tr>' +
+            '<td>' + escapeHtml(item.time) + '</td>' +
+            '<td><span class="type-tag type-' + escapeHtml(item.type) + '">' + escapeHtml(item.type) + '</span></td>' +
+            '<td class="title-cell">' + escapeHtml(item.title) + '</td>' +
+            '<td>' + escapeHtml(item.source) + '</td>' +
+            '<td>' + escapeHtml(item.date) + '</td>' +
+            '<td><div class="row-actions">' +
+              '<button class="btn btn-sm" onclick="editNews(' + item.id + ')">编辑</button>' +
+              '<button class="btn btn-danger btn-sm" onclick="delNews(' + item.id + ')">删除</button>' +
+            '</div></td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      /* ---------- 资讯表单模态框 ---------- */
+      var newsModal = document.getElementById('newsModal');
+      var newsForm = document.getElementById('newsForm');
+      var modalTitle = document.getElementById('modalTitle');
+
+      function openNewsModal(item) {
+        if (item) {
+          modalTitle.textContent = '编辑资讯';
+          document.getElementById('newsId').value = item.id;
+          document.getElementById('fTime').value = item.time || '';
+          document.getElementById('fType').value = item.type || '电影';
+          document.getElementById('fTitle').value = item.title || '';
+          document.getElementById('fSummary').value = item.summary || '';
+          document.getElementById('fSource').value = item.source || '';
+          document.getElementById('fSourceUrl').value = item.sourceUrl || '';
+          document.getElementById('fDate').value = item.date || '';
+        } else {
+          modalTitle.textContent = '新增资讯';
+          newsForm.reset();
+          document.getElementById('newsId').value = '';
+          document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+        }
+        newsModal.classList.add('show');
+      }
+
+      function closeNewsModal() { newsModal.classList.remove('show'); }
+
+      document.getElementById('addNewsBtn').addEventListener('click', function () { openNewsModal(null); });
+      document.getElementById('modalClose').addEventListener('click', closeNewsModal);
+      document.getElementById('modalCancel').addEventListener('click', closeNewsModal);
+      newsModal.addEventListener('click', function (e) { if (e.target === newsModal) closeNewsModal(); });
+
+      newsForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var id = document.getElementById('newsId').value;
+        var payload = {
+          time: document.getElementById('fTime').value.trim(),
+          type: document.getElementById('fType').value,
+          title: document.getElementById('fTitle').value.trim(),
+          summary: document.getElementById('fSummary').value.trim(),
+          source: document.getElementById('fSource').value.trim(),
+          sourceUrl: document.getElementById('fSourceUrl').value.trim(),
+          date: document.getElementById('fDate').value
+        };
+
+        var saveBtn = document.getElementById('modalSave');
+        saveBtn.disabled = true;
+        saveBtn.textContent = '保存中...';
+
+        var request;
+        if (id) {
+          payload.id = parseInt(id, 10);
+          request = api('/api/admin/news', { method: 'PUT', body: payload });
+        } else {
+          request = api('/api/admin/news', { method: 'POST', body: payload });
+        }
+
+        request.then(function () {
+          closeNewsModal();
+          loadNews();
+          toast(id ? '资讯已更新' : '资讯已新增', 'ok');
+        }).catch(function (err) {
+          toast(err.message || '保存失败', 'err');
+        }).finally(function () {
+          saveBtn.disabled = false;
+          saveBtn.textContent = '保存';
+        });
+      });
+
+      // 暴露给内联事件
+      window.editNews = function (id) {
+        var item = newsData.find(function (n) { return n.id === id; });
+        if (item) openNewsModal(item);
+      };
+
+      /* ---------- 删除确认 ---------- */
+      var confirmModal = document.getElementById('confirmModal');
+      var confirmText = document.getElementById('confirmText');
+      var confirmOk = document.getElementById('confirmOk');
+      var pendingDelete = null;
+
+      function showConfirm(text, callback) {
+        confirmText.textContent = text;
+        pendingDelete = callback;
+        confirmModal.classList.add('show');
+      }
+
+      function closeConfirm() { confirmModal.classList.remove('show'); pendingDelete = null; }
+
+      document.getElementById('confirmClose').addEventListener('click', closeConfirm);
+      document.getElementById('confirmCancel').addEventListener('click', closeConfirm);
+      confirmModal.addEventListener('click', function (e) { if (e.target === confirmModal) closeConfirm(); });
+
+      confirmOk.addEventListener('click', function () {
+        if (pendingDelete) { pendingDelete(); }
+        closeConfirm();
+      });
+
+      window.delNews = function (id) {
+        var item = newsData.find(function (n) { return n.id === id; });
+        showConfirm('确定要删除资讯「' + (item ? item.title : '') + '」吗？此操作不可撤销。', function () {
+          api('/api/admin/news?id=' + id, { method: 'DELETE' }).then(function () {
+            loadNews();
+            toast('资讯已删除', 'ok');
+          }).catch(function (err) {
+            toast(err.message || '删除失败', 'err');
+          });
+        });
+      };
+
+      /* ---------- 收藏管理 ---------- */
+      var favData = [];
+
+      function loadFavorites() {
+        var tbody = document.getElementById('favTbody');
+        tbody.innerHTML = '<tr><td colspan="6"><div class="loading"><span class="spinner"></span>加载中...</div></td></tr>';
+        api('/api/admin/favorites').then(function (data) {
+          favData = data.favorites || [];
+          renderFavorites();
+        }).catch(function (err) {
+          tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">' + escapeHtml(err.message) + '</div></td></tr>';
+        });
+      }
+
+      function renderFavorites() {
+        var tbody = document.getElementById('favTbody');
+        document.getElementById('favCount').textContent = favData.length;
+        if (favData.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">暂无收藏记录</div></td></tr>';
+          return;
+        }
+        tbody.innerHTML = favData.map(function (item) {
+          return '<tr>' +
+            '<td class="title-cell">' + escapeHtml(item.title) + '</td>' +
+            '<td>' + (item.type ? '<span class="type-tag type-' + escapeHtml(item.type) + '">' + escapeHtml(item.type) + '</span>' : '-') + '</td>' +
+            '<td>' + escapeHtml(item.time || '-') + '</td>' +
+            '<td>' + escapeHtml(item.source || '-') + '</td>' +
+            '<td>' + escapeHtml(item.created_at || '-') + '</td>' +
+            '<td><div class="row-actions">' +
+              '<button class="btn btn-danger btn-sm" onclick="delFav(' + item.id + ')">删除</button>' +
+            '</div></td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      window.delFav = function (id) {
+        var item = favData.find(function (f) { return f.id === id; });
+        showConfirm('确定要删除收藏「' + (item ? item.title : '') + '」吗？此操作不可撤销。', function () {
+          api('/api/admin/favorites?id=' + id, { method: 'DELETE' }).then(function () {
+            loadFavorites();
+            toast('收藏已删除', 'ok');
+          }).catch(function (err) {
+            toast(err.message || '删除失败', 'err');
+          });
+        });
+      };
+
+      /* ---------- 数据库初始化 ---------- */
+      var initBtn = document.getElementById('initBtn');
+      var initResult = document.getElementById('initResult');
+
+      initBtn.addEventListener('click', function () {
+        initResult.classList.remove('show', 'ok', 'err');
+        initBtn.disabled = true;
+        initBtn.textContent = '初始化中...';
+
+        api('/api/admin/init', { method: 'POST' }).then(function (data) {
+          initResult.textContent = data.message || data.msg || '数据库初始化成功';
+          initResult.classList.add('show', 'ok');
+          toast('数据库初始化成功', 'ok');
+        }).catch(function (err) {
+          initResult.textContent = err.message || '数据库初始化失败';
+          initResult.classList.add('show', 'err');
+        }).finally(function () {
+          initBtn.disabled = false;
+          initBtn.textContent = '初始化数据库';
+        });
+      });
+
+      /* ---------- 初始化 ---------- */
+      if (getToken()) {
+        // 已有 token，直接进入控制台（API 调用失败会自动跳回登录）
+        showDashboard();
+      } else {
+        showLogin();
+      }
+
+    })();
+  </script>
+</body>
+</html>
