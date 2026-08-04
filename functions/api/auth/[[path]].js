@@ -42,18 +42,21 @@ export async function onRequestOptions() {
 
 /* GET /api/auth/verify - 验证 token 是否有效 */
 export async function onRequestGet(context) {
-  var authHeader = context.request.headers.get('Authorization');
-  var username = getUsernameFromToken(authHeader);
-  if (username) {
-    return json({ valid: true, username: username });
+  var path = (context.params.path || [])[0] || '';
+  if (path === 'verify') {
+    var authHeader = context.request.headers.get('Authorization');
+    var username = getUsernameFromToken(authHeader);
+    if (username) {
+      return json({ valid: true, username: username });
+    }
+    return json({ valid: false }, 401);
   }
-  return json({ valid: false }, 401);
+  return json({ error: '未知路由' }, 404);
 }
 
 /* POST /api/auth/register | /api/auth/login */
 export async function onRequestPost(context) {
-  var url = new URL(context.request.url);
-  var path = url.pathname.replace(/\/$/, '').split('/').pop();
+  var path = (context.params.path || [])[0] || '';
   var db = context.env.DB;
   if (!db) return json({ error: '数据库未绑定' }, 500);
 
