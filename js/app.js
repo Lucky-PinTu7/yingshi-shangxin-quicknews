@@ -30,8 +30,27 @@
   }
   function toggleFavorite(id) {
     var idx = favorites.findIndex(function (f) { return f.id === id; });
-    if (idx >= 0) { favorites.splice(idx, 1); }
-    else if (itemMap[id]) { favorites.push(itemMap[id]); }
+    if (idx >= 0) {
+      favorites.splice(idx, 1);
+      // 同步删除数据库记录
+      fetch('/api/favorites?fav_id=' + encodeURIComponent(id), { method: 'DELETE' }).catch(function(){});
+    } else if (itemMap[id]) {
+      favorites.push(itemMap[id]);
+      // 同步写入数据库
+      fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fav_id: id,
+          title: itemMap[id].title,
+          type: itemMap[id].type,
+          time: itemMap[id].time,
+          summary: itemMap[id].summary,
+          source: itemMap[id].source,
+          sourceUrl: itemMap[id].sourceUrl
+        })
+      }).catch(function(){});
+    }
     saveFavorites();
     updateFavCount();
   }
