@@ -122,6 +122,40 @@ export async function onRequestGet(context) {
       items: day.items
     };
   });
+
+  /* 尝试从 D1 数据库读取资讯，覆盖模拟数据 */
+  if (context.env.DB) {
+    try {
+      var dbResults = await context.env.DB.prepare('SELECT * FROM news ORDER BY date DESC, time ASC').all();
+      if (dbResults.results && dbResults.results.length > 0) {
+        var dbTimeline = {};
+        dbResults.results.forEach(function (row) {
+          if (!dbTimeline[row.date]) {
+            var d = new Date(row.date + 'T00:00:00Z');
+            dbTimeline[row.date] = {
+              date: row.date,
+              label: (d.getUTCMonth() + 1) + '月' + d.getUTCDate() + '日',
+              weekday: wk[d.getUTCDay()],
+              isToday: row.date === todayStr,
+              items: []
+            };
+          }
+          dbTimeline[row.date].items.push({
+            time: row.time,
+            type: row.type,
+            title: row.title,
+            summary: row.summary || '',
+            source: row.source || '',
+            sourceUrl: row.sourceUrl || ''
+          });
+        });
+        DATA.timeline = Object.values(dbTimeline).sort(function (a, b) {
+          return b.date.localeCompare(a.date);
+        });
+      }
+    } catch (e) { /* D1 查询失败，使用模拟数据 */ }
+  }
+
   return new Response(JSON.stringify(DATA, null, 2), {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
