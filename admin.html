@@ -537,7 +537,7 @@
         options = options || {};
         var headers = { 'Content-Type': 'application/json' };
         var token = getToken();
-        if (token) headers['Authorization'] = token;
+        if (token) headers['Authorization'] = 'Bearer ' + token;
         if (options.headers) Object.assign(headers, options.headers);
         return fetch(path, {
           method: options.method || 'GET',
