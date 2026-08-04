@@ -365,6 +365,11 @@
       var btn = e.target.closest('.fav-btn');
       if (!btn) return;
       e.preventDefault();
+      /* 未登录禁止收藏 */
+      if (!userToken) {
+        showAuthModal('login');
+        return;
+      }
       var id = btn.getAttribute('data-fav-id');
       toggleFavorite(id);
       var isFav = isFavorited(id);
