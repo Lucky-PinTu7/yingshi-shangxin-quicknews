@@ -195,6 +195,34 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- 底部说明栏 ---------- */
 .app-footer { margin-top: auto; padding: 28px 0 10px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+/* ---------- 收藏夹 ---------- */
+.fav-tab {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);
+  color: rgba(232,236,243,0.65); padding: 10px 14px; border-radius: 10px;
+  font-size: 14px; font-weight: 500; cursor: pointer; text-align: left;
+  backdrop-filter: blur(8px); width: 100%; transition: all .3s var(--ease); margin-top: 6px;
+}
+.fav-tab:hover { color: #fff; background: rgba(255,255,255,0.1); transform: translateX(3px); }
+.fav-tab.active { color: #fff; border-color: transparent; background: #e85a5a; box-shadow: 0 4px 16px rgba(232,90,90,0.3); }
+.fav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+.fav-count { margin-left: auto; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 999px; min-width: 22px; text-align: center; }
+.fav-tab.active .fav-count { background: rgba(255,255,255,0.25); }
+.card-actions { display: flex; align-items: center; gap: 8px; }
+.fav-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12); color: rgba(232,236,243,0.5); cursor: pointer;
+  transition: all .25s var(--ease); flex-shrink: 0;
+}
+.fav-btn:hover { background: rgba(232,90,90,0.2); color: #e85a5a; }
+.fav-btn.active { background: rgba(232,90,90,0.25); color: #e85a5a; border-color: rgba(232,90,90,0.4); }
+.fav-btn svg { width: 16px; height: 16px; } .fav-btn.active svg { fill: #e85a5a; }
+.fav-view { padding: 8px 0 20px; }
+.fav-view-title { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+.fav-view-title .fav-count-large { font-size: 13px; font-weight: 500; color: rgba(232,236,243,0.5); background: rgba(255,255,255,0.08); padding: 3px 10px; border-radius: 999px; }
+.fav-empty { padding: 60px 20px; text-align: center; color: rgba(232,236,243,0.4); font-size: 14px; border: 1px dashed rgba(255,255,255,0.12); border-radius: var(--radius); }
 .footer-note { font-size: 12.5px; line-height: 1.7; color: rgba(232,236,243,0.5); }
 .footer-note strong { color: rgba(232,236,243,0.72); font-weight: 600; }
 .footer-meta { font-size: 11.5px; color: rgba(232,236,243,0.35); margin-top: 10px; }
