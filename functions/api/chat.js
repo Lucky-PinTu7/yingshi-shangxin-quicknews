@@ -31,7 +31,14 @@ export async function onRequestOptions() {
 
 /* POST /api/chat - DeepSeek AI 对话代理 */
 export async function onRequestPost(context) {
+  /* 优先从环境变量读取，其次从 D1 数据库读取 */
   var apiKey = context.env.DEEPSEEK_API_KEY;
+  if (!apiKey && context.env.DB) {
+    try {
+      var row = await context.env.DB.prepare("SELECT value FROM settings WHERE key='deepseek_api_key'").first();
+      if (row) apiKey = row.value;
+    } catch (e) {}
+  }
   if (!apiKey) {
     return json({ error: 'AI 功能未配置' }, 500);
   }
