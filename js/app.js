@@ -478,17 +478,6 @@
         sendChatMessage();
       }
     });
-
-    /* 模式切换标签 */
-    var modeTabs = document.querySelectorAll('.ai-mode-tab');
-    modeTabs.forEach(function (tab) {
-      tab.addEventListener('click', function () {
-        if (chatLoading) return;
-        modeTabs.forEach(function (t) { t.classList.remove('active'); });
-        tab.classList.add('active');
-        chatMode = tab.getAttribute('data-mode') || 'chat';
-      });
-    });
   }
 
   function init() {
