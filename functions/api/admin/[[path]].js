@@ -92,6 +92,14 @@ export async function onRequestPost(context) {
     return json({ success: true });
   }
 
+  // 修改管理员密码
+  if (path === 'change-password') {
+    var oldRow = await db.prepare('SELECT * FROM admins WHERE username = ? AND password = ?').bind(body.username || 'admin', body.oldPassword || '').first();
+    if (!oldRow) return json({ error: '原密码错误' }, 401);
+    await db.prepare('UPDATE admins SET password = ? WHERE username = ?').bind(body.newPassword || '', body.username || 'admin').run();
+    return json({ success: true });
+  }
+
   // 新增资讯
   if (path === 'news') {
     var r = await db.prepare('INSERT INTO news (time, type, title, summary, source, sourceUrl, date) VALUES (?, ?, ?, ?, ?, ?, ?)')
