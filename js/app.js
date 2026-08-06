@@ -15,6 +15,11 @@
   var favMode = false;
   var userToken = null;
   var userName = null;
+  /* ---------- AI 聊天状态 ---------- */
+  var chatMessages = [];
+  var chatMode = 'chat';
+  var chatOpen = false;
+  var chatLoading = false;
 
   function el(id) { return document.getElementById(id); }
   function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -346,6 +351,146 @@
     el('footerYear').textContent = d.getFullYear();
   }
 
+  /* ============================================================
+     AI 影视助手
+     ============================================================ */
+
+  /* 打开/关闭聊天面板 */
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    var panel = el('aiChatPanel');
+    var fab = el('aiFab');
+    if (!panel || !fab) return;
+    if (chatOpen) {
+      panel.classList.add('active');
+      panel.setAttribute('aria-hidden', 'false');
+      fab.classList.add('hidden');
+      var input = el('aiChatInput');
+      if (input) setTimeout(function () { input.focus(); }, 200);
+    } else {
+      panel.classList.remove('active');
+      panel.setAttribute('aria-hidden', 'true');
+      fab.classList.remove('hidden');
+    }
+  }
+
+  /* 渲染聊天记录 */
+  function renderChatMessages() {
+    var box = el('aiChatMessages');
+    if (!box) return;
+    var html = '';
+    chatMessages.forEach(function (msg) {
+      if (msg.role === 'user') {
+        html += '<div class="ai-msg ai-msg-user">' + escapeHtml(msg.content) + '</div>';
+      } else if (msg.role === 'assistant') {
+        /* AI 消息支持换行显示 */
+        html += '<div class="ai-msg ai-msg-bot">' + escapeHtml(msg.content).replace(/\n/g, '<br>') + '</div>';
+      } else if (msg.role === 'loading') {
+        html += '<div class="ai-msg ai-msg-bot ai-msg-loading"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div>';
+      } else if (msg.role === 'error') {
+        html += '<div class="ai-msg ai-msg-bot ai-msg-error">' + escapeHtml(msg.content) + '</div>';
+      }
+    });
+    box.innerHTML = html;
+    /* 滚动到底部 */
+    box.scrollTop = box.scrollHeight;
+  }
+
+  /* 发送消息，调用 /api/chat */
+  function sendChatMessage() {
+    if (chatLoading) return;
+    var input = el('aiChatInput');
+    if (!input) return;
+    var text = input.value.trim();
+    if (!text) return;
+
+    /* 添加用户消息 */
+    chatMessages.push({ role: 'user', content: text });
+    input.value = '';
+    /* 添加 loading 占位 */
+    chatMessages.push({ role: 'loading', content: '' });
+    chatLoading = true;
+    renderChatMessages();
+
+    /* 组装发送给 API 的消息（排除 loading 和 error） */
+    var apiMessages = [];
+    for (var i = 0; i < chatMessages.length; i++) {
+      if (chatMessages[i].role === 'user' || chatMessages[i].role === 'assistant') {
+        apiMessages.push({ role: chatMessages[i].role, content: chatMessages[i].content });
+      }
+    }
+
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: apiMessages, mode: chatMode })
+    }).then(function (res) { return res.json(); }).then(function (data) {
+      /* 移除 loading 占位 */
+      var loadingIdx = -1;
+      for (var j = 0; j < chatMessages.length; j++) {
+        if (chatMessages[j].role === 'loading') { loadingIdx = j; break; }
+      }
+      if (loadingIdx >= 0) chatMessages.splice(loadingIdx, 1);
+
+      if (data.error) {
+        chatMessages.push({ role: 'error', content: data.error });
+      } else {
+        chatMessages.push({ role: 'assistant', content: data.reply || '（无回复内容）' });
+      }
+      chatLoading = false;
+      renderChatMessages();
+    }).catch(function () {
+      /* 移除 loading 占位 */
+      var loadingIdx2 = -1;
+      for (var k = 0; k < chatMessages.length; k++) {
+        if (chatMessages[k].role === 'loading') { loadingIdx2 = k; break; }
+      }
+      if (loadingIdx2 >= 0) chatMessages.splice(loadingIdx2, 1);
+      chatMessages.push({ role: 'error', content: '网络错误，请稍后重试' });
+      chatLoading = false;
+      renderChatMessages();
+    });
+  }
+
+  /* 初始化 AI 聊天功能 */
+  function initAIChat() {
+    /* 欢迎消息 */
+    chatMessages.push({ role: 'assistant', content: '你好！我是 AI 影视助手，可以回答影视问题、推荐影视作品、生成资讯摘要。' });
+    renderChatMessages();
+
+    /* 悬浮按钮点击 */
+    var fab = el('aiFab');
+    if (fab) fab.addEventListener('click', toggleChat);
+
+    /* 关闭按钮 */
+    var closeBtn = el('aiChatClose');
+    if (closeBtn) closeBtn.addEventListener('click', toggleChat);
+
+    /* 发送按钮 */
+    var sendBtn = el('aiChatSend');
+    if (sendBtn) sendBtn.addEventListener('click', sendChatMessage);
+
+    /* 输入框 Enter 键发送 */
+    var input = el('aiChatInput');
+    if (input) input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    });
+
+    /* 模式切换标签 */
+    var modeTabs = document.querySelectorAll('.ai-mode-tab');
+    modeTabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        if (chatLoading) return;
+        modeTabs.forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        chatMode = tab.getAttribute('data-mode') || 'chat';
+      });
+    });
+  }
+
   function init() {
     loadFavorites();
     updateFavCount();
@@ -402,6 +547,9 @@
         handleAuth(mode);
       }
     });
+
+    /* 初始化 AI 影视助手 */
+    initAIChat();
   }
 
   /* 暴露 init 给 data.js 在 JSON 加载完成后调用 */

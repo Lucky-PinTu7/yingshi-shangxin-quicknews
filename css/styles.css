@@ -293,6 +293,120 @@ a { color: inherit; text-decoration: none; }
 }
 .logout-btn:hover { transform: none; background: rgba(232,90,90,0.2); color: #e85a5a; }
 
+/* ============================================================
+   AI 影视助手
+   ============================================================ */
+
+/* ---------- 悬浮按钮 ---------- */
+.ai-fab {
+  position: fixed; bottom: 24px; right: 24px; z-index: 900;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--bg-accent, #7d8da6);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  transition: transform .3s var(--ease), opacity .3s var(--ease), background .3s var(--ease);
+}
+.ai-fab:hover { transform: scale(1.08); background: var(--bg-accent, #7d8da6); opacity: 0.95; }
+.ai-fab.hidden { transform: scale(0); opacity: 0; pointer-events: none; }
+.ai-fab svg { width: 28px; height: 28px; }
+/* 呼吸光效 */
+.ai-fab::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  border: 2px solid var(--bg-accent, #7d8da6); opacity: 0;
+  animation: aiPulse 2.4s ease-in-out infinite;
+}
+@keyframes aiPulse { 0% { opacity: 0.5; transform: scale(1); } 100% { opacity: 0; transform: scale(1.4); } }
+
+/* ---------- 聊天面板 ---------- */
+.ai-chat-panel {
+  position: fixed; bottom: 24px; right: 24px; z-index: 950;
+  width: 380px; height: 500px;
+  background: rgba(16,22,32,0.96);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  display: flex; flex-direction: column; overflow: hidden;
+  opacity: 0; visibility: hidden; transform: translateY(20px) scale(0.96);
+  transition: opacity .3s var(--ease), visibility .3s var(--ease), transform .3s var(--ease);
+}
+.ai-chat-panel.active { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+
+/* 标题栏 */
+.ai-chat-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.ai-chat-title { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: 0.5px; }
+.ai-chat-close {
+  width: 28px; height: 28px; border-radius: 8px; border: none;
+  background: rgba(255,255,255,0.08); color: rgba(232,236,243,0.6);
+  font-size: 20px; cursor: pointer; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .25s var(--ease);
+}
+.ai-chat-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* 模式切换标签 */
+.ai-chat-modes { display: flex; gap: 6px; padding: 10px 14px; flex-shrink: 0; }
+.ai-mode-tab {
+  flex: 1; padding: 7px 0; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04); color: rgba(232,236,243,0.55);
+  font-size: 13px; font-weight: 500; cursor: pointer; text-align: center;
+  transition: all .25s var(--ease);
+}
+.ai-mode-tab:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.ai-mode-tab.active { color: #fff; background: var(--bg-accent, #7d8da6); border-color: transparent; }
+
+/* 消息列表区域 */
+.ai-chat-messages { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent; }
+.ai-chat-messages::-webkit-scrollbar { width: 5px; }
+.ai-chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+/* 消息气泡 */
+.ai-msg { max-width: 82%; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.6; word-break: break-word; animation: aiMsgIn .3s var(--ease) both; }
+@keyframes aiMsgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.ai-msg-user { align-self: flex-end; color: #fff; background: var(--bg-accent, #7d8da6); border-bottom-right-radius: 4px; }
+.ai-msg-bot { align-self: flex-start; color: rgba(232,236,243,0.88); background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08); border-bottom-left-radius: 4px; }
+.ai-msg-error { color: #e85a5a; background: rgba(232,90,90,0.12); border-color: rgba(232,90,90,0.25); }
+
+/* Loading 动画 */
+.ai-msg-loading { display: flex; align-items: center; gap: 5px; }
+.ai-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(232,236,243,0.5); animation: aiDotBounce 1.2s ease-in-out infinite; }
+.ai-dot:nth-child(2) { animation-delay: 0.15s; }
+.ai-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes aiDotBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-5px); opacity: 1; } }
+
+/* 输入区域 */
+.ai-chat-input-wrap { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+.ai-chat-input {
+  flex: 1; padding: 10px 14px; font-size: 13.5px; color: #fff;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; outline: none; transition: border-color .25s var(--ease);
+}
+.ai-chat-input::placeholder { color: rgba(232,236,243,0.3); }
+.ai-chat-input:focus { border-color: var(--bg-accent, #7d8da6); }
+.ai-chat-send {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; border: none;
+  background: var(--bg-accent, #7d8da6); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .25s var(--ease), transform .2s var(--ease);
+}
+.ai-chat-send:hover { opacity: 0.9; transform: translateX(2px); }
+.ai-chat-send:active { transform: scale(0.95); }
+.ai-chat-send svg { width: 18px; height: 18px; }
+
+/* ---------- AI 助手响应式 ---------- */
+@media (max-width: 600px) {
+  .ai-chat-panel { width: calc(100% - 0px); max-width: none; height: 100%; bottom: 0; right: 0; border-radius: 0; }
+  .ai-fab { bottom: 20px; right: 20px; }
+}
+
 /* ---------- 登录/注册模态框 ---------- */
 .auth-modal-overlay {
   position: fixed; inset: 0; z-index: 1000;
